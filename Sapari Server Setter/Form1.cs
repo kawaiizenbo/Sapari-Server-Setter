@@ -1,11 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -41,7 +35,7 @@ namespace Sapari_Server_Setter {
 
         private List<string> GetWRLFiles(string dir) {
             // Recursively fetches all the relevant .wrl files in the directory and subdirectories.
-            List<string> filesInDirectory = Directory.GetFiles(dir).Where(x => x.EndsWith(".wrl")).ToList();
+            List<string> filesInDirectory = new List<string>(Directory.GetFiles(dir, "*.wrl"));
             string[] foldersInDirectory = Directory.GetDirectories(dir);
             if (foldersInDirectory.Length <= 0) {
                 // The base case; No subdirectories. Return the files in the directory.
@@ -59,7 +53,7 @@ namespace Sapari_Server_Setter {
 
         private bool WriteLinkToFile(string file) {
             // Write the server IP/web address to the file under the Sony_WorldInfo entry.
-            List<string> lines = File.ReadAllLines(file).ToList();
+            List<string> lines = new List<string>(File.ReadAllLines(file));
 
             string lineToWrite = $"\tcpBureau\t\"{serverLink}\"";
 
@@ -97,8 +91,9 @@ namespace Sapari_Server_Setter {
                 }
             }
 
+            lines.RemoveAll(Filter);
             try {
-                File.WriteAllLines(file, lines.Where(x => x.Contains("!!!FilterMe") == false).ToArray());
+                File.WriteAllLines(file, lines.ToArray());
             }
             catch {
                 ShowMessageBoxNotification("Write Error", $"Error writing to file {file}.\n\n Make sure the file isn't set to read-only or presently in use, and make sure you're running the application as administrator!");
@@ -107,6 +102,10 @@ namespace Sapari_Server_Setter {
             return true;
         }
 
+        private static bool Filter(String s)
+        {
+            return s.Contains("!!!FilterMe");
+        }
 
         private bool IsValidGameDirectory(string dir) {
             // Check if the chosen directory is a valid game directory...
@@ -135,7 +134,14 @@ namespace Sapari_Server_Setter {
                 ShowMessageBoxNotification("Error", invalidDirMessage);
                 return;
             }
-            List<string> files = GetWRLFiles(currDir).Where(x => IsValidWRLFile(x)).ToList();
+            List<string> files = new List<string>();
+            foreach (string f in GetWRLFiles(currDir))
+            {
+                if (IsValidWRLFile(f))
+                {
+                    files.Add(f);
+                }
+            }
             if (files.Count <= 0) {
                 ShowMessageBoxNotification("Write Error", "Couldn't find any valid .wrl files to write to!");
                 return;
